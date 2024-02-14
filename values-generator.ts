@@ -9,6 +9,7 @@ const signature = await sender.signMessage({ message: "hello world" });
 const hash = keccak256(toHex('{value: 42}'));
 
 const pubKey_uncompressed = await recoverPublicKey({ hash, signature });
+console.log(hexToBytes(pubKey_uncompressed))
 let pubKey = hexToBytes(pubKey_uncompressed).slice(1);
 
 let pub_key_x = pubKey.slice(0, 32);
