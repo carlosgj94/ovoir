@@ -2,11 +2,12 @@ use dep::std;
 use dep::ecrecover;
 // use dep::noir_merkleroot;
 
-global MAX_VOTES = 64;
+global MAX_VOTES: u32 = 64;
 
 fn main(
     chain_id: pub Field, // The chain it will execute on
     proposal_id: pub Field, // Onchain proposal ID
+    num_votes: u32,
     vote: pub [u8; MAX_VOTES], // yes: 1 / no: 0
     pub_key_x: [[u8; 32]; MAX_VOTES],
     pub_key_y: [[u8; 32]; MAX_VOTES],
@@ -18,20 +19,25 @@ fn main(
 ) -> pub [Field; MAX_VOTES] {
     let mut nullifiers: [Field; MAX_VOTES] = [0; MAX_VOTES];
 
-    for i in 0..MAX_VOTES {
-        // TODO: Put some comprobations maybe so it stops the loop?
-        // TODO: Check nullifier is not in the list
+    assert(num_votes <= MAX_VOTES);
 
+    for i in 0..num_votes {
         let address = ecrecover::ecrecover(pub_key_x[i], pub_key_y[i], signature[i], hashed_message[i]);
         std::println(address);
 
         let merkle_root = std::merkle::compute_merkle_root(address, index[i], hashpath[i]);
 
         assert(merkle_root == root); // User is in the merkle tree
-        assert(vote[0] <= 1); // Ensure the vote is either 0 or 1
+        assert(vote[i] <= 1); // Ensure the vote is either 0 or 1
+
+        // TODO: Account for the vote
 
         // publicly return a hash making sure the same address won't vote multiple times for the same proposal
-        nullifiers[i] = std::hash::pedersen_hash([address, proposal_id, chain_id]);
+        let nullifier = std::hash::pedersen_hash([address, proposal_id, chain_id]);
+
+        assert(!nullifiers.any(|a| a == nullifier));
+
+        nullifiers[i] = nullifier;
     }
 
     nullifiers
@@ -62,19 +68,27 @@ fn test_main() {
 
     let root = std::hash::pedersen_hash([left_branch, right_branch]);
 
+    let mut pub_key_x_array = [[0; 32]; 64];
+    pub_key_x_array[0] = pub_key_x;
+    let mut pub_key_y_array = [[0; 32]; 64];
+    pub_key_y_array[0] = pub_key_y;
+
+    let mut result = [0; MAX_VOTES];
+    result[0] = 0x2f67426f38c10c5ef5c97e92a011dbad425f21bb9212101126e61c7dae47cf38;
     assert(
         main(
         1,
         0,
+        1,
         [0; MAX_VOTES],
-        [pub_key_x; MAX_VOTES],
-        [pub_key_y; MAX_VOTES],
+        pub_key_x_array,
+        pub_key_y_array,
         [signature; MAX_VOTES],
         [hashed_message; MAX_VOTES],
         [0; MAX_VOTES],
         [[address2, right_branch]; MAX_VOTES],
         root
     )
-        == [0x2f67426f38c10c5ef5c97e92a011dbad425f21bb9212101126e61c7dae47cf38; MAX_VOTES]
+        == result
     );
 }
