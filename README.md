@@ -42,8 +42,11 @@ This project implements a zero-knowledge proof circuit using the Noir programmin
 ## Relevant commands 🛠️
 
 `nargo test`: Run the test suite to ensure the circuit is functioning as expected.
+
 `nargo check`: Build circuit constraints system and check for errors and warnings.
+
 `nargo prove`: Generate a proof for the circuit using the specified parameters.
+
 `nargo verify`: Verify a proof for the circuit using the specified parameters.
 
 ## Contributing 🤝
