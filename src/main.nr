@@ -8,7 +8,7 @@ fn main(
     chain_id: pub Field, // The chain it will execute on
     proposal_id: pub Field, // Onchain proposal ID
     num_votes: u32,
-    vote: pub [u8; MAX_VOTES], // yes: 1 / no: 0
+    mut votes: pub [u8; MAX_VOTES], // yes: 1 / no: 0
     pub_key_x: [[u8; 32]; MAX_VOTES],
     pub_key_y: [[u8; 32]; MAX_VOTES],
     signature: [[u8; 64]; MAX_VOTES],
@@ -18,6 +18,7 @@ fn main(
     root: pub Field
 ) -> pub [Field; MAX_VOTES] {
     let mut nullifiers: [Field; MAX_VOTES] = [0; MAX_VOTES];
+    let mut num_yes_no_votes: [u32; 2] = [0; 2]; // [yes, no]
 
     assert(num_votes <= MAX_VOTES);
 
@@ -28,9 +29,13 @@ fn main(
         let merkle_root = std::merkle::compute_merkle_root(address, index[i], hashpath[i]);
 
         assert(merkle_root == root); // User is in the merkle tree
-        assert(vote[i] <= 1); // Ensure the vote is either 0 or 1
+        assert(votes[i] <= 1); // Ensure the vote is either 0 or 1
 
-        // TODO: Account for the vote
+        if votes[i] == 1 {
+            num_yes_no_votes[1] += 1;
+        } else {
+            num_yes_no_votes[0] += 1;
+        }
 
         // publicly return a hash making sure the same address won't vote multiple times for the same proposal
         let nullifier = std::hash::pedersen_hash([address, proposal_id, chain_id]);
